@@ -44,7 +44,7 @@ while True:
     frame = stream.read()
     if frame is None:
             break
-    if cur_frame >= 0 and cur_frame % (fps // 3) == 0: # Only check every half second to save time and computation
+    if cur_frame >= 0 and cur_frame % (fps // 2) == 0: # Only check every half second to save time and computation
         if cur_frame == 0: # Find sheet position
             bordered = cv2.copyMakeBorder(frame, 2, 2, 2, 2, cv2.BORDER_CONSTANT) # Add border to account for cases where tab is on sides of video
             gray = cv2.cvtColor(bordered, cv2.COLOR_BGR2GRAY)
