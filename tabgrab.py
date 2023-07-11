@@ -3,18 +3,25 @@ import numpy as np
 from vidgear.gears import CamGear
 import re
 from scipy.signal import find_peaks 
-from os import getcwd
+import os
+from fpdf import FPDF
+import tempfile
 
 source = input("Video link: ")
 path = input("Path to save tab to (leave blank to save to current folder): ")
 start_time = input("Time in seconds when tab appears (leave blank for default of 2 seconds): ")
+lines_per_page = input("How many lines per page on finished document? (leave blank for default of 5): ")
 
 if path == "":
-     path = getcwd()
+     path = os.getcwd()
 if start_time == "":
      start_time = 2
 else:
      start_time = float(start_time)
+if lines_per_page == "":
+    lines_per_page = 5
+else:
+    lines_per_page = int(start_time)
 
 stream = CamGear(
     source=source,
@@ -80,7 +87,9 @@ while True:
                 for contour in contours:
                     bounding_rects.append(cv2.boundingRect(contour))
 
-                largest_rect = max(bounding_rects, key=lambda x: x[2])
+                largest_rect_uc = max(bounding_rects, key=lambda x: x[2])
+                # Add margin to dark mode rect as it detects the white note lines as opposed to bounding box
+                largest_rect = (largest_rect_uc[0], max(0, largest_rect_uc[1] - 20), largest_rect_uc[2], min(frame.shape[0] - (largest_rect_uc[1] - 20), largest_rect_uc[3] + 40))
 
                 rect_crop = thresh[largest_rect[1]:largest_rect[1] + largest_rect[3], largest_rect[0]:largest_rect[0] + largest_rect[2]]
 
@@ -113,11 +122,26 @@ while len(peaks) < 3: # Account huge spikes in change that are typically from fa
 for peak in peaks:
      change_frames.append(frames[peak - 1]) # Add slight buffer to prevent smudge frames
 
-result = change_frames[0]
-for frame in change_frames[1:]:
-    result = cv2.vconcat([result, frame])
-filename = path + "\\" + re.sub('[^A-Za-z0-9]+', '', stream.ytv_metadata["title"]) + ".jpg"
-cv2.imwrite(filename, result)
+height, width, channels = change_frames[0].shape
+pdf = FPDF(orientation='P', unit='pt', format=[width, height * lines_per_page])
+
+temp_files = []
+for ind in range(len(change_frames)):
+    if ind % lines_per_page == 0:
+        pdf.add_page()
+
+    # Save frame as a temporary file to be usable by FPDF
+    temp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete="False")
+    temp_files.append(temp_file.name)
+    temp_file.close()
+    cv2.imwrite(temp_file.name, change_frames[ind])
+
+    # Add image to the PDF
+    pdf.image(temp_file.name, x=0, y=ind % lines_per_page * height)
+    os.remove(temp_file.name)
+
+filename = path + "\\" + re.sub('[^A-Za-z0-9]+', '', stream.ytv_metadata["title"]) + ".pdf"
+pdf.output(filename)
 print("Written to " + filename)
 
 stream.stop()
