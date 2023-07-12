@@ -10,7 +10,6 @@ import tempfile
 source = input("Video link: ")
 path = input("Path to save tab to (leave blank to save to current folder): ")
 start_time = input("Time in seconds when tab appears (leave blank for default of 2 seconds): ")
-lines_per_page = input("How many lines per page on finished document? (leave blank for default of 5): ")
 
 if path == "":
      path = os.getcwd()
@@ -18,10 +17,6 @@ if start_time == "":
      start_time = 2
 else:
      start_time = float(start_time)
-if lines_per_page == "":
-    lines_per_page = 5
-else:
-    lines_per_page = int(start_time)
 
 stream = CamGear(
     source=source,
@@ -123,9 +118,11 @@ for peak in peaks:
      change_frames.append(frames[peak - 1]) # Add slight buffer to prevent smudge frames
 
 height, width, channels = change_frames[0].shape
-pdf = FPDF(orientation='P', unit='pt', format=[width, height * lines_per_page])
+pdf = FPDF(orientation='P', unit='pt')
 
 temp_files = []
+scale = pdf.w / width
+lines_per_page = pdf.h // (height * scale)
 for ind in range(len(change_frames)):
     if ind % lines_per_page == 0:
         pdf.add_page()
@@ -137,7 +134,7 @@ for ind in range(len(change_frames)):
     cv2.imwrite(temp_file.name, change_frames[ind])
 
     # Add image to the PDF
-    pdf.image(temp_file.name, x=0, y=ind % lines_per_page * height)
+    pdf.image(temp_file.name, x=0, y=ind % lines_per_page * height * scale, w=width * scale, h=height * scale)
     os.remove(temp_file.name)
 
 filename = path + "\\" + re.sub('[^A-Za-z0-9]+', '', stream.ytv_metadata["title"]) + ".pdf"
