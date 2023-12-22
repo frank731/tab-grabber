@@ -2,7 +2,7 @@
 
 Tab Grabber is a script intended to convert online video music tabs into a single document, removing the need to constantly pause and move the video to practice.
 
-To use, run [tabgrab.py](tabgrab.py) and enter the video URL. Optional parameters include a path to save the document (defaults to current folder) and the start time for when the tab appears to help the tool determine when to begin looking for it (defaults to 2 seconds).
+To use, run [tabgrab.py](tabgrab.py) and enter the video URL, when the tab appears in the video (to account for fade ins, intros, etc.), and whether or not to manually select the portion of the video where the tab is located.
 
 Tab Grabber uses computer vision to determine the position of the tab and when it switches pages, so manual adjustments may be needed for unconventional tab formats.
 
